@@ -42,7 +42,7 @@ def send_welcome(message):
     bot.reply_to(message, welcome_text)
 
 # --- FEATURE 1: Answers the manual command inside the group ---
-@bot.message_handler(commands=['countdown'])
+@bot.message_handler(func=lambda message: message.text and message.text.startswith('/countdown'))
 def send_countdown(message):
     response = get_countdown_text()
     bot.reply_to(message, response)
