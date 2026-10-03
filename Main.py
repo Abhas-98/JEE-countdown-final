@@ -1,28 +1,20 @@
 import os
 import telebot
 from datetime import datetime
+import time
+import threading
 
 # Safe automatic token pickup from Render settings
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
 bot = telebot.TeleBot(BOT_TOKEN)
 
-@bot.message_handler(commands=['start'])
-def send_welcome(message):
-    welcome_text = (
-        "Your daily dose of motivation and reality check for JEE Main 2028.\n\n"
-        "Every morning at 7:00 AM IST, this bot reminds you exactly how many days "
-        "and weeks are left for the estimated JEE Main January 2028 exam.\n\n"
-        "📅 Daily reminder — every day at 7:00 AM IST\n"
-        "📅 Weekly check-in — every Monday at 7:00 AM IST\n\n"
-        "Use /countdown anytime to get the live countdown instantly.\n\n"
-        "Stay consistent. Every day counts. 🔥"
-    )
-    bot.reply_to(message, welcome_text)
+# 🔴 CHANGE THIS: Put your Telegram Group username here (include the @ sign)
+# Example: GROUP_CHAT_ID = '@my_jee_study_group'
+GROUP_CHAT_ID = '-1003636395458'
 
-@bot.message_handler(commands=['countdown'])
-def send_countdown(message):
+def get_countdown_text():
     today = datetime.now()
-    target = datetime(2028, 1, 20) # Estimated Exam Target Date: 20th January 2028
+    target = datetime(2028, 1, 20) # Target Exam Date: 20th January 2028
     
     difference = target - today
     days_left = difference.days
@@ -31,7 +23,7 @@ def send_countdown(message):
     
     today_str = today.strftime("%dth %B, %Y")
     
-    response = (
+    return (
         "⏳ JEE Main 2028 Countdown\n\n"
         f"📅 Today: {today_str}\n"
         "🎯 Estimated Target: 20th January 2028\n"
@@ -39,6 +31,41 @@ def send_countdown(message):
         f"📅 Weeks Left: {weeks_left} weeks + {extra_days} days\n\n"
         "Keep going. 🔥"
     )
+
+@bot.message_handler(commands=['start'])
+def send_welcome(message):
+    welcome_text = (
+        "Your daily dose of motivation and reality check for JEE Main 2028.\n\n"
+        "Use /countdown anytime to get the live countdown instantly.\n\n"
+        "Stay consistent. Every day counts. 🔥"
+    )
+    bot.reply_to(message, welcome_text)
+
+# --- FEATURE 1: Answers the manual command inside the group ---
+@bot.message_handler(commands=['countdown'])
+def send_countdown(message):
+    response = get_countdown_text()
     bot.reply_to(message, response)
+
+# --- FEATURE 2: Sends the message automatically every day ---
+def automatic_scheduler():
+    while True:
+        # Render servers use UTC time. 
+        # 7:00 AM Indian Standard Time (IST) is exactly 1:30 AM UTC.
+        current_time = datetime.utcnow()
+        
+        if current_time.hour == 1 and current_time.minute == 30:
+            if GROUP_CHAT_ID != '@YOUR_GROUP_USERNAME':
+                try:
+                    response = get_countdown_text()
+                    bot.send_message(chat_id=GROUP_CHAT_ID, text=f"📢 DAILY MORNING ALERTS\n\n{response}")
+                except Exception as e:
+                    print("Error sending automatic message:", e)
+            # Sleep 60 seconds so it doesn't send multiple times in the same minute
+            time.sleep(60)
+        time.sleep(10)
+
+# Boots up the background timing clock
+threading.Thread(target=automatic_scheduler, daemon=True).start()
 
 bot.infinity_polling()
