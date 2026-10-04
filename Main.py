@@ -8,9 +8,8 @@ import threading
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
 bot = telebot.TeleBot(BOT_TOKEN)
 
-# 🔴 CHANGE THIS: Put your Telegram Group username here (include the @ sign)
-# Example: GROUP_CHAT_ID = '@my_jee_study_group'
-GROUP_CHAT_ID = '-1003636395458'
+# 🔴 CRUCIAL: Put your exact negative group ID inside the single quotes below!
+GROUP_CHAT_ID = '-1001234567890'
 
 def get_countdown_text():
     today = datetime.now()
@@ -41,31 +40,30 @@ def send_welcome(message):
     )
     bot.reply_to(message, welcome_text)
 
-# --- FEATURE 1: Answers the manual command inside the group ---
-@bot.message_handler(func=lambda message: message.text and message.text.startswith('/countdown'))
+# --- 100% FIXED STABLE HANDLER FOR PLAIN GROUP COMMANDS ---
+@bot.message_handler(func=lambda msg: msg.text is not None and msg.text.startswith('/countdown'))
 def send_countdown(message):
     response = get_countdown_text()
     bot.reply_to(message, response)
 
-# --- FEATURE 2: Sends the message automatically every day ---
+# --- AUTOMATIC MORNING SCHEDULER SYSTEM ---
 def automatic_scheduler():
     while True:
-        # Render servers use UTC time. 
-        # 7:00 AM Indian Standard Time (IST) is exactly 1:30 AM UTC.
+        # 7:00 AM IST is exactly 1:30 AM UTC time on Render
         current_time = datetime.utcnow()
         
         if current_time.hour == 1 and current_time.minute == 30:
-            if GROUP_CHAT_ID != '@YOUR_GROUP_USERNAME':
+            if GROUP_CHAT_ID != '-1001234567890':
                 try:
                     response = get_countdown_text()
-                    bot.send_message(chat_id=GROUP_CHAT_ID, text=f"📢 DAILY MORNING ALERTS\n\n{response}")
+                    bot.send_message(chat_id=int(GROUP_CHAT_ID), text=f"📢 DAILY MORNING ALERTS\n\n{response}")
                 except Exception as e:
                     print("Error sending automatic message:", e)
-            # Sleep 60 seconds so it doesn't send multiple times in the same minute
+            # Sleep for 60 seconds to prevent double sending in the same minute
             time.sleep(60)
         time.sleep(10)
 
-# Boots up the background timing clock
+# Boots up the background clock thread safely
 threading.Thread(target=automatic_scheduler, daemon=True).start()
 
 bot.infinity_polling()
