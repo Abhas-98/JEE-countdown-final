@@ -9,7 +9,7 @@ BOT_TOKEN = os.environ.get('BOT_TOKEN')
 bot = telebot.TeleBot(BOT_TOKEN)
 
 # 🔴 CRUCIAL: Put your exact negative group ID inside the single quotes below!
-GROUP_CHAT_ID = '-1001234567890'
+GROUP_CHAT_ID = '-1003636395458'
 
 def get_countdown_text():
     today = datetime.now()
