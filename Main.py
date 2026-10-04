@@ -3,8 +3,22 @@ import telebot
 from datetime import datetime
 import time
 import threading
+from flask import Flask
 
-# Safe automatic token pickup from Render settings
+# --- TRICK TO KEEP RENDER ONLINE 24/7 ---
+# This creates a dummy webpage so Render never hits a port timeout crash
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot is running online 24/7!"
+
+def run_dummy_server():
+    # Safely fetches port from Render or uses 8080 as backup
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host='0.0.0.0', port=port)
+
+# --- TELEGRAM BOT LOGIC ---
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -38,13 +52,13 @@ def send_welcome(message):
         "Use /countdown anytime to get the live countdown instantly.\n\n"
         "Stay consistent. Every day counts. 🔥"
     )
-    bot.reply_to(message, welcome_text)
+    bot.send_message(message.chat.id, welcome_text)
 
 # --- 100% FIXED STABLE HANDLER FOR PLAIN GROUP COMMANDS ---
 @bot.message_handler(func=lambda msg: msg.text is not None and msg.text.startswith('/countdown'))
 def send_countdown(message):
     response = get_countdown_text()
-    bot.reply_to(message, response)
+    bot.send_message(message.chat.id, response)
 
 # --- AUTOMATIC MORNING SCHEDULER SYSTEM ---
 def automatic_scheduler():
@@ -59,11 +73,18 @@ def automatic_scheduler():
                     bot.send_message(chat_id=int(GROUP_CHAT_ID), text=f"📢 DAILY MORNING ALERTS\n\n{response}")
                 except Exception as e:
                     print("Error sending automatic message:", e)
-            # Sleep for 60 seconds to prevent double sending in the same minute
             time.sleep(60)
         time.sleep(10)
 
-# Boots up the background clock thread safely
-threading.Thread(target=automatic_scheduler, daemon=True).start()
-
-bot.infinity_polling()
+# --- START EVERYTHING SAFELY ---
+if __name__ == "__main__":
+    # 1. Start the web server in the background for Render
+    t1 = threading.Thread(target=run_dummy_server, daemon=True)
+    t1.start()
+    
+    # 2. Start the 7:00 AM clock tracker in the background
+    t2 = threading.Thread(target=automatic_scheduler, daemon=True)
+    t2.start()
+    
+    # 3. Start the Telegram Bot listener live
+    bot.infinity_polling()
